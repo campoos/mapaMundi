@@ -37,4 +37,12 @@ svg {
 
 button {
     position: fixed;
+    right: 0;
+    bottom: 0;
+}
+
+@media (max-width:1024px){
+    svg {
+        height: 70vh;
+    }
 }
