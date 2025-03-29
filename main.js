@@ -3,9 +3,10 @@
 let paisSelecionado = null;
 const body = document.getElementById('body');
 
-// Criamos os elementos uma vez para evitar múltiplas criações
+// Criamos os elementos mas não adicionamos ao body ainda
 const containerInfo = document.createElement('div');
 containerInfo.id = "infoPais";
+containerInfo.style.display = "none"; // Escondemos inicialmente
 
 // Criando as divs para exibir informações do país
 const nomeDiv = document.createElement('div');
@@ -13,26 +14,39 @@ const capitalDiv = document.createElement('div');
 const populacaoDiv = document.createElement('div');
 const continenteDiv = document.createElement('div');
 const bandeiraDiv = document.createElement('div');
-const bandeira = document.createElement('img'); // Imagem da bandeira
+const bandeira = document.createElement('img');
 
-bandeira.style.width = "100px"; // Tamanho fixo da bandeira
+bandeira.style.width = "100px";
 
-// Adicionamos os elementos ao container
 containerInfo.appendChild(nomeDiv);
 containerInfo.appendChild(capitalDiv);
 containerInfo.appendChild(populacaoDiv);
 containerInfo.appendChild(continenteDiv);
 containerInfo.appendChild(bandeiraDiv);
 bandeiraDiv.appendChild(bandeira);
-
-// Adicionando o container ao body
 body.appendChild(containerInfo);
 
-// Função para zoom in e zoom out
-let zoomLevel = 1; // Tamanho inicial do zoom (1x)
+const mapeamentoPaises = {
+    "United States of America": "United States",
+    "Russia": "Russian Federation",
+    "South Korea": "Korea, Republic of",
+    "North Korea": "Korea, Democratic People's Republic of",
+    "Vietnam": "Viet Nam",
+    "Czech Republic": "Czechia",
+    "Turkey": "Türkiye",
+    "Iran": "Iran, Islamic Republic of",
+    "Syria": "Syrian Arab Republic",
+    "Brunei": "Brunei Darussalam",
+    "Laos": "Lao People's Democratic Republic"
+};
+
+function normalizarNomePais(nome) {
+    return mapeamentoPaises[nome] || nome;
+}
+
+let zoomLevel = 1;
 const svg = document.querySelector("svg");
 
-// Criando o botão de Zoom In com o ícone de mais (plus.png)
 const zoomInButton = document.createElement("button");
 zoomInButton.style.position = "fixed";
 zoomInButton.style.bottom = "10px";
@@ -41,15 +55,13 @@ zoomInButton.style.padding = "10px";
 zoomInButton.style.backgroundColor = "transparent";
 zoomInButton.style.border = "none";
 zoomInButton.style.cursor = "pointer";
-
 const plusIcon = document.createElement("img");
-plusIcon.src = "./img/plus.png"; // Caminho para o ícone de mais
+plusIcon.src = "./img/plus.png";
 plusIcon.alt = "Zoom In";
-plusIcon.style.width = "30px"; // Tamanho do ícone
+plusIcon.style.width = "30px";
 zoomInButton.appendChild(plusIcon);
 body.appendChild(zoomInButton);
 
-// Criando o botão de Zoom Out com o ícone de menos (minus.png)
 const zoomOutButton = document.createElement("button");
 zoomOutButton.style.position = "fixed";
 zoomOutButton.style.bottom = "10px";
@@ -58,97 +70,103 @@ zoomOutButton.style.padding = "10px";
 zoomOutButton.style.backgroundColor = "transparent";
 zoomOutButton.style.border = "none";
 zoomOutButton.style.cursor = "pointer";
-
 const minusIcon = document.createElement("img");
-minusIcon.src = "./img/minus.png"; // Caminho para o ícone de menos
+minusIcon.src = "./img/minus.png";
 minusIcon.alt = "Zoom Out";
-minusIcon.style.width = "30px"; // Tamanho do ícone
+minusIcon.style.width = "30px";
 zoomOutButton.appendChild(minusIcon);
 body.appendChild(zoomOutButton);
 
-// Lógica de zoom
 zoomInButton.addEventListener("click", () => {
-    // Limita o zoom máximo a 10x
     if (zoomLevel < 10) {
         zoomLevel += 0.1;
-        svg.style.transform = `scale(${zoomLevel}) translate(${offsetX}px, ${offsetY}px)`;
+        svg.style.transform = `scale(${zoomLevel}) translate(${translateX}px, ${translateY}px)`;
     }
 });
 
 zoomOutButton.addEventListener("click", () => {
-    // Limita o zoom mínimo a 1x
     if (zoomLevel > 1) {
         zoomLevel -= 0.1;
-        svg.style.transform = `scale(${zoomLevel}) translate(${offsetX}px, ${offsetY}px)`;
+        svg.style.transform = `scale(${zoomLevel}) translate(${translateX}px, ${translateY}px)`;
     }
 });
 
-// Função para permitir que o usuário mova o mapa com o botão esquerdo do mouse
 let isDragging = false;
-let startX, startY;
-let offsetX = 0, offsetY = 0; // Valores para armazenar a posição do deslocamento
+let startX, startY, translateX = 0, translateY = 0;
 
-svg.addEventListener("mousedown", (e) => {
+function startDrag(e) {
+    if (e.button === 0 || e.button === 2) {
+        isDragging = true;
+        startX = e.clientX - translateX;
+        startY = e.clientY - translateY;
+        svg.style.cursor = "grabbing";
+    }
+}
+
+function startTouchDrag(e) {
     isDragging = true;
-    startX = e.clientX - offsetX;
-    startY = e.clientY - offsetY;
+    startX = e.touches[0].clientX - translateX;
+    startY = e.touches[0].clientY - translateY;
     svg.style.cursor = "grabbing";
-});
+}
 
-window.addEventListener("mouseup", () => {
+// Função para parar o drag e armazenar a posição final
+function stopDrag() {
     isDragging = false;
     svg.style.cursor = "grab";
-});
+}
 
-window.addEventListener("mousemove", (e) => {
+// Função otimizada para movimentação, mas apenas no final
+function moveDrag(e) {
     if (isDragging) {
-        offsetX = e.clientX - startX;
-        offsetY = e.clientY - startY;
-        svg.style.transform = `scale(${zoomLevel}) translate(${offsetX}px, ${offsetY}px)`;
+        const clientX = e.clientX || e.touches[0].clientX;
+        const clientY = e.clientY || e.touches[0].clientY;
+        translateX = clientX - startX;
+        translateY = clientY - startY;
+
+        // Apenas aplica a transformação no final do movimento
+        requestAnimationFrame(() => {
+            svg.style.transform = `scale(${zoomLevel}) translate(${translateX}px, ${translateY}px)`;
+        });
     }
-});
+}
 
-// Função de scroll para mover o mapa
-window.addEventListener("wheel", (e) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.1 : -0.1; // Define a direção do zoom com scroll
+// Adiciona os eventos de mouse e touch
+svg.addEventListener("mousedown", startDrag);
+svg.addEventListener("touchstart", startTouchDrag);
 
-    zoomLevel += delta;
-    if (zoomLevel < 1) zoomLevel = 1; // Limita o zoom mínimo a 1x
-    if (zoomLevel > 10) zoomLevel = 10; // Limita o zoom máximo a 10x
+window.addEventListener("mouseup", stopDrag);
+window.addEventListener("touchend", stopDrag);
 
-    svg.style.transform = `scale(${zoomLevel}) translate(${offsetX}px, ${offsetY}px)`;
-});
+window.addEventListener("mousemove", moveDrag);
+window.addEventListener("touchmove", moveDrag);
 
 document.querySelectorAll("svg path").forEach(pais => {
     pais.addEventListener("click", function () {
         if (paisSelecionado) {
-            paisSelecionado.setAttribute("fill", "#ececec"); // Volta ao normal
+            paisSelecionado.setAttribute("fill", "#ececec");
         }
-        this.setAttribute("fill", "red"); // Muda a cor do país clicado
+        this.setAttribute("fill", "red");
         paisSelecionado = this;
 
         let nomePais = this.getAttribute("name") || this.getAttribute("id") || this.getAttribute("class");
+        nomePais = normalizarNomePais(nomePais);
 
-        // Exibimos que os dados estão sendo carregados
+        containerInfo.style.display = "block";
         nomeDiv.textContent = `Carregando dados de ${nomePais}...`;
         capitalDiv.textContent = "";
         populacaoDiv.textContent = "";
         continenteDiv.textContent = "";
         bandeira.src = "";
 
-        // Buscar dados do país na API
-        fetch(`https://restcountries.com/v3.1/name/${nomePais}`)
+        fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(nomePais)}`)
             .then(response => response.json())
             .then(data => {
                 if (!Array.isArray(data) || data.length === 0) {
                     nomeDiv.textContent = "País não encontrado!";
                     return;
                 }
-
-                // Filtramos para pegar o país correto (evitar territórios menores)
-                let paisInfo = data.find(p => p.cca2 === nomePais || p.cca3 === nomePais || p.name.common.toLowerCase() === nomePais.toLowerCase()) || data[0];
-
+                let paisInfo = data.find(p => p.name.common.toLowerCase() === nomePais.toLowerCase()) || data[0];
                 nomeDiv.textContent = `País: ${paisInfo.name.common}`;
                 capitalDiv.textContent = `Capital: ${paisInfo.capital ? paisInfo.capital[0] : "Não informado"}`;
                 populacaoDiv.textContent = `População: ${paisInfo.population.toLocaleString()}`;
