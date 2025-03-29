@@ -71,8 +71,7 @@ zoomInButton.addEventListener("click", () => {
     // Limita o zoom máximo a 10x
     if (zoomLevel < 10) {
         zoomLevel += 0.1;
-        svg.style.transform = `scale(${zoomLevel})`;
-        adjustSvgPosition();
+        svg.style.transform = `scale(${zoomLevel}) translate(${offsetX}px, ${offsetY}px)`;
     }
 });
 
@@ -80,32 +79,19 @@ zoomOutButton.addEventListener("click", () => {
     // Limita o zoom mínimo a 1x
     if (zoomLevel > 1) {
         zoomLevel -= 0.1;
-        svg.style.transform = `scale(${zoomLevel})`;
-        adjustSvgPosition();
+        svg.style.transform = `scale(${zoomLevel}) translate(${offsetX}px, ${offsetY}px)`;
     }
 });
-
-// Função para ajustar a posição do SVG quando o zoom é alterado
-function adjustSvgPosition() {
-    const scale = zoomLevel;
-    svg.style.transformOrigin = "50% 50%"; // Ajusta o ponto de origem do zoom para o centro
-    // Remove qualquer barra de rolagem quando o zoom estiver em 1x
-    if (zoomLevel === 1) {
-        svg.style.transform = "scale(1)";
-        document.body.style.overflow = "hidden"; // Remove barras de rolagem
-    } else {
-        document.body.style.overflow = "auto"; // Adiciona barras de rolagem quando zoom não for 1x
-    }
-}
 
 // Função para permitir que o usuário mova o mapa com o botão esquerdo do mouse
 let isDragging = false;
 let startX, startY;
+let offsetX = 0, offsetY = 0; // Valores para armazenar a posição do deslocamento
 
 svg.addEventListener("mousedown", (e) => {
     isDragging = true;
-    startX = e.clientX - svg.getBoundingClientRect().left; // Ajuste para pegar a posição correta no canvas
-    startY = e.clientY - svg.getBoundingClientRect().top;
+    startX = e.clientX - offsetX;
+    startY = e.clientY - offsetY;
     svg.style.cursor = "grabbing";
 });
 
@@ -116,9 +102,9 @@ window.addEventListener("mouseup", () => {
 
 window.addEventListener("mousemove", (e) => {
     if (isDragging) {
-        const x = e.clientX - startX;
-        const y = e.clientY - startY;
-        svg.style.transform = `scale(${zoomLevel}) translate(${x}px, ${y}px)`;
+        offsetX = e.clientX - startX;
+        offsetY = e.clientY - startY;
+        svg.style.transform = `scale(${zoomLevel}) translate(${offsetX}px, ${offsetY}px)`;
     }
 });
 
@@ -131,8 +117,7 @@ window.addEventListener("wheel", (e) => {
     if (zoomLevel < 1) zoomLevel = 1; // Limita o zoom mínimo a 1x
     if (zoomLevel > 10) zoomLevel = 10; // Limita o zoom máximo a 10x
 
-    svg.style.transform = `scale(${zoomLevel})`;
-    adjustSvgPosition();
+    svg.style.transform = `scale(${zoomLevel}) translate(${offsetX}px, ${offsetY}px)`;
 });
 
 document.querySelectorAll("svg path").forEach(pais => {
